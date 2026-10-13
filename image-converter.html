@@ -1,0 +1,172 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Converter - Converter Genie</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .converter-box {
+      max-width: 650px;
+      margin: 35px auto 60px;
+      background: white;
+      padding: 25px;
+      border: 1px solid #e7e9f2;
+      border-radius: 18px;
+    }
+    .converter-box input,
+    .converter-box select,
+    .converter-box button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0 16px;
+      border: 1px solid #ddd;
+      border-radius: 9px;
+      font-size: 16px;
+    }
+    .converter-box button {
+      background: #6956e8;
+      color: white;
+      border: none;
+      font-weight: bold;
+    }
+    #preview {
+      max-width: 100%;
+      max-height: 260px;
+      display: none;
+      margin: 15px auto;
+    }
+    #status {
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <a class="logo" href="index.html">🪄 Converter Genie</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="pdf-tools.html">PDF</a>
+      <a href="unit-converter.html">Units</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Image Converter</h1>
+      <p>Convert your image to JPG, PNG or WebP right in your browser.</p>
+    </section>
+
+    <section class="converter-box">
+      <label for="imageFile">Choose an image</label>
+      <input type="file" id="imageFile" accept="image/*">
+
+      <img id="preview" alt="Selected image preview">
+
+      <label for="format">Output format</label>
+      <select id="format">
+        <option value="image/jpeg">JPG</option>
+        <option value="image/png">PNG</option>
+        <option value="image/webp">WebP</option>
+      </select>
+
+      <button id="convertBtn" type="button">Convert Image</button>
+
+      <p id="status" aria-live="polite">Choose an image to begin.</p>
+      <a id="download" hidden>Download converted image</a>
+    </section>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById("imageFile");
+    const preview = document.getElementById("preview");
+    const format = document.getElementById("format");
+    const status = document.getElementById("status");
+    const download = document.getElementById("download");
+    let selectedImage = null;
+    let outputUrl = null;
+
+    fileInput.addEventListener("change", () => {
+      selectedImage = null;
+      preview.style.display = "none";
+      download.hidden = true;
+
+      if (outputUrl) URL.revokeObjectURL(outputUrl);
+      outputUrl = null;
+
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        status.textContent = "Please choose a valid image file.";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => {
+          selectedImage = image;
+          preview.src = reader.result;
+          preview.style.display = "block";
+          status.textContent = "Image ready to convert.";
+        };
+        image.onerror = () => {
+          status.textContent = "Could not open this image.";
+        };
+        image.src = reader.result;
+      };
+      reader.onerror = () => {
+        status.textContent = "Could not read this file.";
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById("convertBtn").addEventListener("click", () => {
+      if (!selectedImage) {
+        status.textContent = "First choose an image.";
+        return;
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = selectedImage.naturalWidth;
+      canvas.height = selectedImage.naturalHeight;
+
+      const context = canvas.getContext("2d");
+      const type = format.value;
+
+      if (type === "image/jpeg") {
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      context.drawImage(selectedImage, 0, 0);
+
+      canvas.toBlob((blob) => {
+        if (!blob || blob.type !== type) {
+          status.textContent = "This format is not supported by your browser.";
+          return;
+        }
+
+        if (outputUrl) URL.revokeObjectURL(outputUrl);
+        outputUrl = URL.createObjectURL(blob);
+
+        const extension = type === "image/jpeg" ? "jpg" :
+          type === "image/png" ? "png" : "webp";
+
+        download.href = outputUrl;
+        download.download = "converted-image." + extension;
+        download.hidden = false;
+        download.textContent = "Download converted image";
+        download.style.display = "inline-block";
+        download.style.color = "#5140c7";
+        download.style.fontWeight = "bold";
+
+        status.textContent = "Conversion complete. Tap the download link.";
+      }, type, 0.92);
+    });
+  </script>
+</body>
+</html>
+```

@@ -1,0 +1,199 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Tools - Converter Genie</title>
+  <meta name="description" content="Free browser-based PDF tools to merge PDF files.">
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    .pdf-box {
+      max-width: 650px;
+      margin: 30px auto 50px;
+      padding: 24px;
+      background: white;
+      border: 1px solid #e7e9f2;
+      border-radius: 18px;
+    }
+
+    .pdf-box input,
+    .pdf-box button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      margin: 10px 0 16px;
+      border: 1px solid #ddd;
+      border-radius: 9px;
+      font-size: 16px;
+    }
+
+    .pdf-box button {
+      background: #6956e8;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .pdf-box button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .pdf-result {
+      margin-top: 18px;
+      padding: 15px;
+      background: #f2f0ff;
+      border-radius: 10px;
+      overflow-wrap: anywhere;
+    }
+
+    .pdf-result a {
+      color: #5140c7;
+      font-weight: bold;
+    }
+
+    .note {
+      color: #555;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <a class="logo" href="index.html">🪄 Converter Genie</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="image-converter.html">Images</a>
+      <a href="unit-converter.html">Units</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>PDF Tools</h1>
+      <p>Combine multiple PDF files into one PDF document.</p>
+    </section>
+
+    <section class="pdf-box">
+      <h2>📄 Merge PDF Files</h2>
+      <p>Select two or more PDF files in the order you want them combined.</p>
+
+      <label for="pdfFiles">Choose PDF files</label>
+      <input type="file" id="pdfFiles" accept=".pdf,application/pdf" multiple>
+
+      <button type="button" id="mergeBtn">Merge PDF Files</button>
+
+      <div class="pdf-result" id="status" aria-live="polite">
+        Select at least two PDF files to begin.
+      </div>
+
+      <p class="note">
+        Privacy: Files are processed in your browser using a JavaScript library.
+        The library loads from the internet, so an internet connection is needed.
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 Converter Genie. All rights reserved.</p>
+    <p>
+      <a href="about.html">About</a> |
+      <a href="contact.html">Contact</a> |
+      <a href="privacy.html">Privacy Policy</a>
+    </p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+  <script>
+    const fileInput = document.getElementById("pdfFiles");
+    const mergeBtn = document.getElementById("mergeBtn");
+    const statusBox = document.getElementById("status");
+    let downloadUrl = null;
+
+    fileInput.addEventListener("change", function () {
+      if (downloadUrl) {
+        URL.revokeObjectURL(downloadUrl);
+        downloadUrl = null;
+      }
+
+      const files = Array.from(fileInput.files);
+
+      statusBox.textContent = files.length >= 2
+        ? files.length + " PDF files selected. Ready to merge."
+        : "Please select at least two PDF files.";
+    });
+
+    mergeBtn.addEventListener("click", async function () {
+      const files = Array.from(fileInput.files);
+
+      if (files.length < 2) {
+        statusBox.textContent = "Please select at least two PDF files.";
+        return;
+      }
+
+      if (!window.PDFLib) {
+        statusBox.textContent =
+          "PDF library could not load. Check your internet connection and try again.";
+        return;
+      }
+
+      mergeBtn.disabled = true;
+      statusBox.textContent = "Merging PDFs. Please wait...";
+
+      try {
+        const mergedPdf = await PDFLib.PDFDocument.create();
+
+        for (const file of files) {
+          if (file.type && file.type !== "application/pdf") {
+            throw new Error("One of the selected files is not a PDF.");
+          }
+
+          const bytes = await file.arrayBuffer();
+          const pdf = await PDFLib.PDFDocument.load(bytes);
+          const pages = await mergedPdf.copyPages(
+            pdf,
+            pdf.getPageIndices()
+          );
+
+          pages.forEach(function (page) {
+            mergedPdf.addPage(page);
+          });
+        }
+
+        const mergedBytes = await mergedPdf.save();
+        const blob = new Blob([mergedBytes], {
+          type: "application/pdf"
+        });
+
+        if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+        downloadUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = "converter-genie-merged.pdf";
+        link.textContent = "Download merged PDF";
+        link.style.display = "inline-block";
+        link.style.marginTop = "8px";
+
+        statusBox.replaceChildren();
+        statusBox.append(
+          document.createTextNode("PDF merge complete! "),
+          link
+        );
+      } catch (error) {
+        statusBox.textContent =
+          "Could not merge these PDFs. Check that they are valid and not password-protected.";
+      } finally {
+        mergeBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+```
